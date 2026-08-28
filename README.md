@@ -11,6 +11,7 @@ No API key required — CheapShark is a fully public, anonymous API.
 ```
 .claude-plugin/marketplace.json   # marketplace catalog (this repo)
 plugins/cheapshark/               # the plugin itself
+  skills/game-deals/SKILL.md      # tells Claude when to reach for these tools on its own
 ```
 
 ## Tools
@@ -20,6 +21,15 @@ plugins/cheapshark/               # the plugin itself
 - **`get_game`** — look up a game by title and get its current price at every store plus its
   all-time historical low, so you can tell if now is actually a good time to buy.
 - **`list_stores`** — list the storefronts CheapShark tracks.
+
+## Automatic use (skill)
+
+`plugins/cheapshark/skills/game-deals/SKILL.md` is a plugin skill — a description Claude
+reads to decide when a topic calls for these tools, so you don't have to name the plugin or
+a tool explicitly. Ask "is Hades a good deal right now?" or "what's on sale on Steam under
+$15?" in a normal conversation and, once the plugin is installed, Claude should reach for
+`get_game`/`search_deals` on its own. (An MCP server declaration alone, without a skill,
+only makes tools *available* — it doesn't tell Claude when unprompted use is appropriate.)
 
 ## Design note: zero runtime dependencies
 

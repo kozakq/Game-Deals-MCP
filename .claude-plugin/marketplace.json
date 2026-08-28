@@ -1,0 +1,16 @@
+{
+  "$schema": "https://code.claude.com/schemas/marketplace.json",
+  "name": "cheapshark-marketplace",
+  "description": "PC game deal tracking via the CheapShark API",
+  "owner": {
+    "name": "kozakq",
+    "email": "kozakq@msoe.edu"
+  },
+  "plugins": [
+    {
+      "name": "cheapshark",
+      "source": "./plugins/cheapshark",
+      "description": "Search PC game deals and check price history across Steam, GOG, Epic, Humble, and every other storefront CheapShark tracks."
+    }
+  ]
+}

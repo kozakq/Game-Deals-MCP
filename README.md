@@ -1,11 +1,17 @@
-# CheapShark MCP Server
+# CheapShark Marketplace
 
-An MCP server that gives Claude (or any MCP client) access to live PC game deals and price
+A [Claude Code plugin marketplace](https://code.claude.com/docs/en/plugin-marketplaces)
+containing one plugin: an MCP server that gives Claude access to live PC game deals and price
 history via the [CheapShark](https://www.cheapshark.com/) API — deals across Steam, GOG,
 Epic, Humble, and every other major storefront it tracks, plus historical-low pricing so an
 LLM can actually reason about whether a deal is good, not just report a number.
 
 No API key required — CheapShark is a fully public, anonymous API.
+
+```
+.claude-plugin/marketplace.json   # marketplace catalog (this repo)
+plugins/cheapshark/               # the plugin itself
+```
 
 ## Tools
 
@@ -15,55 +21,53 @@ No API key required — CheapShark is a fully public, anonymous API.
   all-time historical low, so you can tell if now is actually a good time to buy.
 - **`list_stores`** — list the storefronts CheapShark tracks.
 
-## Setup
+## Install as a plugin
 
-Requires Python 3.11+.
+Requires [`uv`](https://docs.astral.sh/uv/) on your PATH — it's what runs the server and
+resolves its (pure-Python) dependencies on demand, so there's no separate install step.
 
-```bash
-python -m venv .venv
-.venv\Scripts\activate        # Windows
-# source .venv/bin/activate   # macOS/Linux
-pip install -e .
+In Claude Code:
+
+```
+/plugin marketplace add /path/to/this/repo
+/plugin install cheapshark@cheapshark-marketplace
 ```
 
-Run it directly (mostly useful for a quick sanity check — it just sits there speaking MCP
-over stdio):
+(or point `marketplace add` at this repo's GitHub URL once it's pushed). This is also what
+lets the plugin sync in the Claude Desktop app via Cowork. Restart, and the three tools above
+are available.
+
+## Run it directly (without the plugin system)
+
+Requires Python 3.11+ and `uv`.
 
 ```bash
-python server.py
+cd plugins/cheapshark
+uv run server.py
 ```
 
 Run the tests:
 
 ```bash
-pip install -e ".[dev]"
-pytest
+cd plugins/cheapshark
+uv run --extra dev pytest
 ```
 
-## Connect it to Claude
+### Manual MCP config
 
-Add this to your Claude Desktop config (`claude_desktop_config.json`) or Claude Code MCP
-config (`.mcp.json`), using the absolute path to this project's `server.py` and the Python
-interpreter from the venv you created above:
+If you'd rather wire it up by hand than through `/plugin install` — e.g. in Claude Desktop's
+`claude_desktop_config.json`:
 
 ```json
 {
   "mcpServers": {
     "cheapshark": {
-      "command": "C:/path/to/cheapshark-mcp/.venv/Scripts/python.exe",
-      "args": ["C:/path/to/cheapshark-mcp/server.py"]
+      "command": "uv",
+      "args": ["run", "--project", "C:/path/to/this/repo/plugins/cheapshark", "C:/path/to/this/repo/plugins/cheapshark/server.py"]
     }
   }
 }
 ```
-
-Or with the Claude Code CLI:
-
-```bash
-claude mcp add cheapshark -- C:/path/to/cheapshark-mcp/.venv/Scripts/python.exe C:/path/to/cheapshark-mcp/server.py
-```
-
-Restart Claude Desktop / Claude Code and the three tools above will be available.
 
 ## Try asking
 
@@ -74,9 +78,9 @@ Restart Claude Desktop / Claude Code and the three tools above will be available
 
 ## Notes
 
-- CheapShark rejects requests with a missing or generic `User-Agent` header — this server
-  sets one on every request (`cheapshark_client.py`). If you fork this and start seeing
-  mysterious API errors, that's the first thing to check.
+- CheapShark rejects requests with a missing or generic `User-Agent` header — the client sets
+  one on every request (`plugins/cheapshark/cheapshark_client.py`). If you fork this and start
+  seeing mysterious API errors, that's the first thing to check.
 - The store list is fetched once, on first use, and cached in memory for the life of the
   process — it's fetched from CheapShark just once, not on every call.
 - Not built: email price-alert endpoints and a standalone deal-by-id lookup. Both are out of

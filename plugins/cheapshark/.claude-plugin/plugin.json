@@ -1,0 +1,13 @@
+{
+  "name": "cheapshark",
+  "displayName": "CheapShark Game Deals",
+  "version": "0.1.0",
+  "description": "MCP server for searching PC game deals and price history via the CheapShark API.",
+  "author": {
+    "name": "kozakq",
+    "email": "kozakq@msoe.edu"
+  },
+  "license": "MIT",
+  "keywords": ["games", "deals", "cheapshark", "steam", "mcp"],
+  "mcpServers": "./.mcp.json"
+}

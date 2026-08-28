@@ -21,10 +21,24 @@ plugins/cheapshark/               # the plugin itself
   all-time historical low, so you can tell if now is actually a good time to buy.
 - **`list_stores`** — list the storefronts CheapShark tracks.
 
+## Design note: zero runtime dependencies
+
+The server is hand-written against the [MCP stdio JSON-RPC protocol](https://modelcontextprotocol.io/specification/2025-06-18/basic/transports)
+directly — no `fastmcp`, no `httpx`, nothing beyond the Python standard library.
+
+That wasn't the first version. It started on `fastmcp` + `httpx`, launched via `uv run`
+so dependencies resolved on demand. That works fine locally, but plugin/connector installs
+in Claude Desktop and Cowork run `.mcp.json`'s `command`/`args` as-is — there's no install
+step. `uv run`'s on-demand dependency resolution has nowhere to run in that model, and
+`fastmcp`'s real dependency tree turned out to include several platform-specific compiled
+packages (`pydantic-core`, `cryptography`, `rpds-py`, ...), which rules out just vendoring
+them portably too. Since this server only needs three tools and one JSON-RPC handshake,
+writing that ~150 lines directly against stdlib (`server.py`) removes the problem
+entirely — there is nothing to install, on any platform, ever.
+
 ## Install as a plugin
 
-Requires [`uv`](https://docs.astral.sh/uv/) on your PATH — it's what runs the server and
-resolves its (pure-Python) dependencies on demand, so there's no separate install step.
+Requires Python 3.11+ (as `python3` on your PATH — nothing else, no packages to install).
 
 In Claude Code:
 
@@ -33,20 +47,21 @@ In Claude Code:
 /plugin install cheapshark@cheapshark-marketplace
 ```
 
-(or point `marketplace add` at this repo's GitHub URL once it's pushed). This is also what
-lets the plugin sync in the Claude Desktop app via Cowork. Restart, and the three tools above
-are available.
+(or point `marketplace add` at this repo's GitHub URL). This is also what lets the plugin
+sync in the Claude Desktop app via Cowork. Restart, and the three tools above are available.
 
 ## Run it directly (without the plugin system)
 
-Requires Python 3.11+ and `uv`.
-
 ```bash
 cd plugins/cheapshark
-uv run server.py
+python3 server.py
 ```
 
-Run the tests:
+It just sits there speaking MCP over stdio — that's expected, it's meant to be launched by
+an MCP client, not run interactively.
+
+Run the tests (this needs [`uv`](https://docs.astral.sh/uv/), or just `pip install pytest`
+and run `pytest` directly — `uv` is only a dev convenience, never required at runtime):
 
 ```bash
 cd plugins/cheapshark
@@ -62,12 +77,14 @@ If you'd rather wire it up by hand than through `/plugin install` — e.g. in Cl
 {
   "mcpServers": {
     "cheapshark": {
-      "command": "uv",
-      "args": ["run", "--project", "C:/path/to/this/repo/plugins/cheapshark", "C:/path/to/this/repo/plugins/cheapshark/server.py"]
+      "command": "python3",
+      "args": ["C:/path/to/this/repo/plugins/cheapshark/server.py"]
     }
   }
 }
 ```
+
+(On Windows, if `python3` isn't on your PATH, use `python` instead.)
 
 ## Try asking
 

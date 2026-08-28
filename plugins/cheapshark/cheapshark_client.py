@@ -1,17 +1,21 @@
-"""Thin HTTP wrapper around the CheapShark API. No business logic here."""
+"""Thin HTTP wrapper around the CheapShark API. Standard library only - no
+third-party dependencies, so the plugin needs no install step to run."""
 
 from __future__ import annotations
 
-import httpx
+import json
+import urllib.error
+import urllib.parse
+import urllib.request
 
 BASE_URL = "https://www.cheapshark.com/api/1.0/"
 
 # CheapShark rejects requests with a missing or generic User-Agent
 # ({"error": "Missing or generic User-Agent header detected..."}), so this
 # must be set on every request.
-HEADERS = {"User-Agent": "cheapshark-mcp/0.1 (github.com/aqpickup/cheapshark-mcp)"}
+USER_AGENT = "cheapshark-mcp/0.1 (github.com/kozakq/Game-Deals-MCP)"
 
-client = httpx.Client(base_url=BASE_URL, headers=HEADERS, timeout=10.0)
+TIMEOUT = 10.0
 
 
 class CheapSharkError(Exception):
@@ -19,18 +23,23 @@ class CheapSharkError(Exception):
 
 
 def _get(path: str, params: dict | None = None) -> dict | list:
+    query = urllib.parse.urlencode(
+        {k: v for k, v in (params or {}).items() if v is not None}
+    )
+    url = f"{BASE_URL}{path}"
+    if query:
+        url = f"{url}?{query}"
+
+    request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     try:
-        response = client.get(path, params=params)
-        response.raise_for_status()
-    except httpx.TimeoutException as exc:
-        raise CheapSharkError("CheapShark API timed out.") from exc
-    except httpx.HTTPStatusError as exc:
-        raise CheapSharkError(
-            f"CheapShark API returned an error: {exc.response.status_code}"
-        ) from exc
-    except httpx.HTTPError as exc:
+        with urllib.request.urlopen(request, timeout=TIMEOUT) as response:
+            body = response.read()
+    except urllib.error.HTTPError as exc:
+        raise CheapSharkError(f"CheapShark API returned an error: {exc.code}") from exc
+    except (urllib.error.URLError, TimeoutError, OSError) as exc:
         raise CheapSharkError(f"Could not reach CheapShark API: {exc}") from exc
-    return response.json()
+
+    return json.loads(body)
 
 
 def fetch_stores() -> list[dict]:
@@ -38,7 +47,6 @@ def fetch_stores() -> list[dict]:
 
 
 def fetch_deals(**params) -> list[dict]:
-    params = {k: v for k, v in params.items() if v is not None}
     return _get("deals", params=params)
 
 

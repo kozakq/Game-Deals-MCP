@@ -11,7 +11,10 @@ No API key required — CheapShark is a fully public, anonymous API.
 ```
 .claude-plugin/marketplace.json   # marketplace catalog (this repo)
 plugins/cheapshark/               # the plugin itself
+  server.py                       # MCP server (stdio JSON-RPC, stdlib only)
+  cheapshark_client.py            # CheapShark HTTP client
   skills/game-deals/SKILL.md      # tells Claude when to reach for these tools on its own
+  .mcp.json                       # declares the MCP server to the plugin runtime
 ```
 
 ## Tools
@@ -27,24 +30,23 @@ plugins/cheapshark/               # the plugin itself
 `plugins/cheapshark/skills/game-deals/SKILL.md` is a plugin skill — a description Claude
 reads to decide when a topic calls for these tools, so you don't have to name the plugin or
 a tool explicitly. Ask "is Hades a good deal right now?" or "what's on sale on Steam under
-$15?" in a normal conversation and, once the plugin is installed, Claude should reach for
-`get_game`/`search_deals` on its own. (An MCP server declaration alone, without a skill,
-only makes tools *available* — it doesn't tell Claude when unprompted use is appropriate.)
+$15?" in a normal conversation and Claude reaches for `get_game`/`search_deals` on its own.
+An MCP server declaration by itself only makes tools *available* — the skill is what tells
+Claude when unprompted use is appropriate.
 
-## Design note: zero runtime dependencies
+## Zero runtime dependencies
 
-The server is hand-written against the [MCP stdio JSON-RPC protocol](https://modelcontextprotocol.io/specification/2025-06-18/basic/transports)
-directly — no `fastmcp`, no `httpx`, nothing beyond the Python standard library.
+`server.py` is written directly against the [MCP stdio JSON-RPC protocol](https://modelcontextprotocol.io/specification/2025-06-18/basic/transports) —
+no framework, no third-party packages, nothing beyond the Python standard library.
+`cheapshark_client.py` talks to the API with `urllib`.
 
-That wasn't the first version. It started on `fastmcp` + `httpx`, launched via `uv run`
-so dependencies resolved on demand. That works fine locally, but plugin/connector installs
-in Claude Desktop and Cowork run `.mcp.json`'s `command`/`args` as-is — there's no install
-step. `uv run`'s on-demand dependency resolution has nowhere to run in that model, and
-`fastmcp`'s real dependency tree turned out to include several platform-specific compiled
-packages (`pydantic-core`, `cryptography`, `rpds-py`, ...), which rules out just vendoring
-them portably too. Since this server only needs three tools and one JSON-RPC handshake,
-writing that ~150 lines directly against stdlib (`server.py`) removes the problem
-entirely — there is nothing to install, on any platform, ever.
+This matters because plugin installs in Claude Desktop and Cowork run `.mcp.json`'s
+`command`/`args` directly with no install step — there's no point in the plugin lifecycle
+where dependencies get resolved or installed. A server with real third-party dependencies
+would need them vendored into the repo, which only works cleanly for pure-Python packages;
+anything with a platform-specific compiled component can't be vendored portably at all.
+Needing only three tools and one JSON-RPC handshake, writing that directly against stdlib
+sidesteps the question entirely: there is nothing to install, on any platform, ever.
 
 ## Install as a plugin
 
@@ -59,6 +61,12 @@ In Claude Code:
 
 (or point `marketplace add` at this repo's GitHub URL). This is also what lets the plugin
 sync in the Claude Desktop app via Cowork. Restart, and the three tools above are available.
+
+To pick up a change to this repo after it's already installed, update the plugin explicitly
+rather than just reconnecting — a reconnect reuses whatever was already installed. In Claude
+Code: `/plugin marketplace update cheapshark-marketplace`, then uninstall and reinstall the
+plugin. In Claude Desktop/Cowork: remove the plugin in Settings → Plugins and re-add it so it
+re-clones the repo.
 
 ## Run it directly (without the plugin system)
 

@@ -11,6 +11,12 @@
       "name": "cheapshark",
       "source": "./plugins/cheapshark",
       "description": "Search PC game deals and check price history across Steam, GOG, Epic, Humble, and every other storefront CheapShark tracks."
+    },
+
+    {
+  "name": "speedrun",
+  "source": "./plugins/speedrun",
+  "description": "Search speedrun.com for games, categories, and leaderboards."
     }
   ]
 }

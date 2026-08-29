@@ -1,0 +1,13 @@
+{
+  "name": "speedrun",
+  "displayName": "Speedrun.com Game Data",
+  "version": "0.1.0",
+  "description": "MCP server for searching game data via the Speedrun.com API.",
+  "author": {
+    "name": "kozakq",
+    "email": "kozakq@msoe.edu"
+  },
+  "license": "MIT",
+  "keywords": ["games", "speedrun", "speedrun.com", "mcp"],
+  "mcpServers": "./.mcp.json"
+}

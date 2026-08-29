@@ -1,0 +1,18 @@
+[project]
+name = "speedrun-mcp"
+version = "0.1.0"
+description = "MCP server for game/category/leaderboard data via the speedrun.com API"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = ["server"]
